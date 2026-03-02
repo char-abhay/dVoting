@@ -13,5 +13,15 @@ module.exports = {
       gas: 6721975,
       gasPrice: 20000000000,
     },
+    ganache: {
+      host: "127.0.0.1",
+      port: 7545,
+      network_id: "*", // Accept whatever Ganache provides
+    },
+  },
+  compilers: {
+    solc: {
+      version: "0.8.19",
+    },
   },
 };

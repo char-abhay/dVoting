@@ -74,9 +74,9 @@ export default class Home extends Component {
 
       // Getting election details from the contract
       const electionDetails = await this.state.ElectionInstance.methods
-      .getElectionDetails()
-      .call();
-      
+        .getElectionDetails()
+        .call();
+
       this.setState({
         elDetails: {
           adminName: electionDetails.adminName,
@@ -87,12 +87,40 @@ export default class Home extends Component {
         },
       });
     } catch (error) {
-      // Catch any errors for any of the above operations.
+      const networkId = await this.state.web3?.eth.net.getId().catch(() => "unknown");
       alert(
-        `Failed to load web3, accounts, or contract. Check console for details.`
+        `Failed to load contract. (Network ID: ${networkId}). Ensure MetaMask is on ID 1337 and your contract is deployed.`
       );
       console.error(error);
     }
+  };
+  // switch to ganache network
+  switchNetwork = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x539" }],
+      });
+    } catch (switchError) {
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: "0x539",
+                chainName: "Ganache Local",
+                rpcUrls: ["http://127.0.0.1:8545"],
+                nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+              },
+            ],
+          });
+        } catch (addError) {
+          console.error(addError);
+        }
+      }
+    }
+    window.location.reload();
   };
   // end election
   endElection = async () => {
@@ -138,7 +166,22 @@ export default class Home extends Component {
                 {this.state.isAdmin ? (
                   <p>Set up the election.</p>
                 ) : (
-                  <p>Please wait..</p>
+                  <>
+                    <p>Please wait..</p>
+                    <button
+                      className="btn-switch"
+                      onClick={this.switchNetwork}
+                      style={{
+                        padding: "10px",
+                        background: "#f39c12",
+                        border: "none",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Switch to Ganache Network
+                    </button>
+                  </>
                 )}
               </center>
             </div>

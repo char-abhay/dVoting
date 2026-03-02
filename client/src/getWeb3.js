@@ -9,8 +9,9 @@ const getWeb3 = () =>
         const web3 = new Web3(window.ethereum);
         try {
           // Request account access if needed
-          await window.ethereum.enable();
-          // Acccounts now exposed
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const networkId = await web3.eth.net.getId();
+          console.log("MetaMask Connected. Network ID:", networkId);
           resolve(web3);
         } catch (error) {
           reject(error);
