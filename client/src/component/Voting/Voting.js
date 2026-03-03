@@ -34,6 +34,7 @@ export default class Voting extends Component {
         isVerified: false,
         isRegistered: false,
       },
+      demoMode: false,
     };
   }
   componentDidMount = async () => {
@@ -111,6 +112,31 @@ export default class Voting extends Component {
         this.setState({ isAdmin: true });
       }
     } catch (error) {
+      // Check for demo mode
+      if (localStorage.getItem("demoMode") === "true") {
+        this.setState({
+          demoMode: true,
+          web3: true,
+          isAdmin: false,
+          isElStarted: true,
+          isElEnded: false,
+          candidateCount: 2,
+          candidates: [
+            { id: 0, header: "Candidate 1", slogan: "Vote for progress!" },
+            { id: 1, header: "Candidate 2", slogan: "A better future for all." },
+          ],
+          currentVoter: {
+            address: "0xDEMO_VOTER_ACCOUNT",
+            name: "Demo User",
+            phone: "9876543210",
+            hasVoted: false,
+            isVerified: true,
+            isRegistered: true,
+          },
+          account: "0xDEMO_VOTER_ACCOUNT",
+        });
+        return;
+      }
       // Catch any errors for any of the above operations.
       alert(
         `Failed to load web3, accounts, or contract. Check console for details.`
@@ -164,7 +190,20 @@ export default class Voting extends Component {
       return (
         <>
           {this.state.isAdmin ? <NavbarAdmin /> : <Navbar />}
-          <center>Loading Web3, accounts, and contract...</center>
+          <div className="container-main" style={{ textAlign: "center", marginTop: "50px" }}>
+            <center>Loading Web3, accounts, and contract...</center>
+            <div style={{ marginTop: "20px" }}>
+              <button
+                onClick={() => {
+                  localStorage.setItem("demoMode", "true");
+                  window.location.reload();
+                }}
+                style={{ padding: "10px 20px", backgroundColor: "#2ecc71", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
+              >
+                🚀 View Demo Mode
+              </button>
+            </div>
+          </div>
         </>
       );
     }

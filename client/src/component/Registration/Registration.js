@@ -35,6 +35,7 @@ export default class Registration extends Component {
         isVerified: false,
         isRegistered: false,
       },
+      demoMode: false,
     };
   }
 
@@ -119,6 +120,31 @@ export default class Registration extends Component {
         },
       });
     } catch (error) {
+      // Check for demo mode
+      if (localStorage.getItem("demoMode") === "true") {
+        this.setState({
+          demoMode: true,
+          web3: true,
+          isAdmin: true,
+          isElStarted: true,
+          isElEnded: false,
+          account: "0xDEMO_VOTER_ACCOUNT",
+          voterCount: 2,
+          voters: [
+            { address: "0xVOTER_1", name: "Ava", phone: "1234567890", hasVoted: false, isVerified: true, isRegistered: true },
+            { address: "0xVOTER_2", name: "Leo", phone: "0987654321", hasVoted: true, isVerified: true, isRegistered: true },
+          ],
+          currentVoter: {
+            address: "0xDEMO_VOTER_ACCOUNT",
+            name: "Demo User",
+            phone: "9876543210",
+            hasVoted: false,
+            isVerified: true,
+            isRegistered: true,
+          },
+        });
+        return;
+      }
       // Catch any errors for any of the above operations.
       console.error(error);
       alert(
@@ -143,7 +169,20 @@ export default class Registration extends Component {
       return (
         <>
           {this.state.isAdmin ? <NavbarAdmin /> : <Navbar />}
-          <center>Loading Web3, accounts, and contract...</center>
+          <div className="container-main" style={{ textAlign: "center", marginTop: "50px" }}>
+            <center>Loading Web3, accounts, and contract...</center>
+            <div style={{ marginTop: "20px" }}>
+              <button
+                onClick={() => {
+                  localStorage.setItem("demoMode", "true");
+                  window.location.reload();
+                }}
+                style={{ padding: "10px 20px", backgroundColor: "#2ecc71", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}
+              >
+                🚀 View Demo Mode
+              </button>
+            </div>
+          </div>
         </>
       );
     }

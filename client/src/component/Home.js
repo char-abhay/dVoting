@@ -29,6 +29,7 @@ export default class Home extends Component {
       elStarted: false,
       elEnded: false,
       elDetails: {},
+      demoMode: false,
     };
   }
 
@@ -87,13 +88,31 @@ export default class Home extends Component {
         },
       });
     } catch (error) {
-      const networkId = await this.state.web3?.eth.net.getId().catch(() => "unknown");
-      alert(
-        `Failed to load contract. (Network ID: ${networkId}). Ensure MetaMask is on ID 1337 and your contract is deployed.`
-      );
       console.error(error);
+      // If deployedNetwork is missing, we might be on the wrong network
+      this.setState({ web3: "failed" });
     }
   };
+
+  enableDemoMode = () => {
+    localStorage.setItem("demoMode", "true");
+    this.setState({
+      demoMode: true,
+      web3: true, // Bypass loading screen
+      isAdmin: true,
+      elStarted: false,
+      elEnded: false,
+      account: "0xDEMO_ADMIN_ACCOUNT",
+      elDetails: {
+        adminName: "Abhay Admin",
+        adminEmail: "abhay@example.com",
+        adminTitle: "Project Lead",
+        electionTitle: "Sample Election",
+        organizationTitle: "Team Abhay",
+      },
+    });
+  };
+
   // switch to ganache network
   switchNetwork = async () => {
     try {
@@ -148,7 +167,69 @@ export default class Home extends Component {
       return (
         <>
           <Navbar />
-          <center>Loading Web3, accounts, and contract...</center>
+          <div className="container-main" style={{ textAlign: "center", marginTop: "50px" }}>
+            <h3>Connecting to Blockchain...</h3>
+            <p>Please ensure MetaMask is connected to Ganache (Port 8545).</p>
+            <div style={{ marginTop: "20px" }}>
+              <button
+                onClick={this.enableDemoMode}
+                style={{
+                  padding: "12px 24px",
+                  fontSize: "16px",
+                  backgroundColor: "#2ecc71",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                }}
+              >
+                🚀 View Demo Mode (No MetaMask needed)
+              </button>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (this.state.web3 === "failed") {
+      return (
+        <>
+          <Navbar />
+          <div className="container-main" style={{ textAlign: "center", marginTop: "50px" }}>
+            <h3 style={{ color: "tomato" }}>Connection Failed</h3>
+            <p>We couldn't find the Smart Contract on your current network.</p>
+            <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
+              <button
+                onClick={this.switchNetwork}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#f39c12",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  width: "250px"
+                }}
+              >
+                Switch to Ganache Network
+              </button>
+              <button
+                onClick={this.enableDemoMode}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#2ecc71",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  width: "250px"
+                }}
+              >
+                View Demo Mode
+              </button>
+            </div>
+          </div>
         </>
       );
     }
@@ -157,7 +238,11 @@ export default class Home extends Component {
         {this.state.isAdmin ? <NavbarAdmin /> : <Navbar />}
         <div className="container-main">
           <div className="container-item center-items info">
-            Your Account: {this.state.account}
+            {this.state.demoMode ? (
+              <strong style={{ color: "#27ae60" }}>✨ DEMO MODE ACTIVE</strong>
+            ) : (
+              <>Your Account: {this.state.account}</>
+            )}
           </div>
           {!this.state.elStarted & !this.state.elEnded ? (
             <div className="container-item info">
