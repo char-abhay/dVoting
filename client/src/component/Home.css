@@ -1,6 +1,7 @@
 .label-home {
   padding: 0.5em;
 }
+
 .input-home {
   margin-top: 1em;
   margin-left: 7px;
@@ -8,6 +9,100 @@
   padding: 1em;
   min-width: 300px;
 }
+
+.btn-demo-main {
+  padding: 14px 28px;
+  font-size: 18px;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  borderRadius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+  transition: transform 0.2s;
+}
+
+.btn-demo-main:hover {
+  transform: scale(1.05);
+}
+
+.guide-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px auto;
+  max-width: 450px;
+}
+
+.troubleshoot-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+  margin-top: 25px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.troubleshoot-step {
+  background: white;
+  border: 1px solid #dee2e6;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.btn-action {
+  background: #f39c12;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-action-alt {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.meta-instructions {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #856404;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .input-home,
 .label-home {
   display: block;
