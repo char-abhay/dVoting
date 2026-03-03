@@ -17,6 +17,7 @@ build/contracts/
 *.json
 !package.json
 !package-lock.json
+!client/src/contracts/*.json
 
 # IDE/Editor files
 .vscode/
