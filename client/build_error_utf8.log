@@ -1,0 +1,48 @@
+﻿
+> client@0.1.0 build
+> react-scripts --openssl-legacy-provider build
+
+node.exe : (node:3080) 
+[DEP0176] 
+DeprecationWarning: 
+fs.F_OK is deprecated, use 
+fs.constants.F_OK instead
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: ((no  
+  de:3080) [DE...ts.F_OK   
+  instead:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+(Use `node 
+--trace-deprecation ...` 
+to show where the warning 
+was created)
+Creating an optimized production build...
+Browserslist: caniuse-lite 
+is outdated. Please run:
+  npx update-browserslist-d
+b@latest
+  Why you should do it 
+regularly: https://github.c
+om/browserslist/update-db#r
+eadme
+
+Treating warnings as errors because process.env.CI = true.
+Most CI servers set it automatically.
+
+Failed to compile.
+
+src\component\Admin\AddCandidate\AddCandidate.js
+  Line 75:13:  'formattedCandidates' is assigned a value but never used  no-unused-vars
+
+

@@ -25,10 +25,7 @@ export default class Registration extends Component {
 
   // refreshing once
   componentDidMount = async () => {
-    if (!window.location.hash) {
-      window.location = window.location + "#loaded";
-      window.location.reload();
-    }
+    // Optimized: Removed redundant window.location.reload() hack
     try {
       // Get network provider and web3 instance.
       const web3 = await getWeb3();
@@ -48,9 +45,13 @@ export default class Registration extends Component {
       // example of interacting with the contract's methods.
       this.setState({ web3, ElectionInstance: instance, account: accounts[0] });
 
-      // Total number of candidates
+      // Get current electionId
+      const electionId = await instance.methods.electionId().call();
+      this.setState({ electionId: electionId });
+
+      // Total number of candidates for this session
       const candidateCount = await this.state.ElectionInstance.methods
-        .getTotalCandidate()
+        .candidateCount(electionId)
         .call();
       this.setState({ candidateCount: candidateCount });
 
@@ -59,29 +60,30 @@ export default class Registration extends Component {
       if (this.state.account === admin) {
         this.setState({ isAdmin: true });
       }
-      // Total number of voters
+      // Total number of voters for this session
       const voterCount = await this.state.ElectionInstance.methods
-        .getTotalVoter()
+        .voterCount(electionId)
         .call();
       this.setState({ voterCount: voterCount });
-      // Loading all the voters
-      for (let i = 0; i < this.state.voterCount; i++) {
-        const voterAddress = await this.state.ElectionInstance.methods
-          .voters(i)
-          .call();
-        const voter = await this.state.ElectionInstance.methods
-          .voterDetails(voterAddress)
-          .call();
-        this.state.voters.push({
-          address: voter.voterAddress,
-          name: voter.name,
-          phone: voter.phone,
-          hasVoted: voter.hasVoted,
-          isVerified: voter.isVerified,
-          isRegistered: voter.isRegistered,
-        });
-      }
-      this.setState({ voters: this.state.voters });
+
+      // Optimized: Loading all voters in parallel using Promise.all
+      const voters = await Promise.all(
+        Array.from({ length: voterCount }, (_, i) => 
+          this.state.ElectionInstance.methods.voters(electionId, i).call()
+            .then(address => this.state.ElectionInstance.methods.voterDetails(electionId, address).call())
+        )
+      );
+
+      const formattedVoters = voters.map(v => ({
+        address: v.voterAddress,
+        name: v.name,
+        phone: v.phone,
+        hasVoted: v.hasVoted,
+        isVerified: v.isVerified,
+        isRegistered: v.isRegistered,
+      }));
+
+      this.setState({ voters: formattedVoters });
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(

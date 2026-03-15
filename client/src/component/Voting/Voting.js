@@ -38,11 +38,7 @@ export default class Voting extends Component {
     };
   }
   componentDidMount = async () => {
-    // refreshing once
-    if (!window.location.hash) {
-      window.location = window.location + "#loaded";
-      window.location.reload();
-    }
+    // Optimized: Removed redundant window.location.reload() hack
     try {
       // Get network provider and web3 instance.
       const web3 = await getWeb3();
@@ -66,34 +62,37 @@ export default class Voting extends Component {
         account: accounts[0],
       });
 
-      // Get total number of candidates
+      // Get current electionId
+      const electionId = await instance.methods.electionId().call();
+      this.setState({ electionId: electionId });
+
+      // Get total number of candidates for this session
       const candidateCount = await this.state.ElectionInstance.methods
-        .getTotalCandidate()
+        .candidateCount(electionId)
         .call();
       this.setState({ candidateCount: candidateCount });
-
-      // Get start and end values
-      const start = await this.state.ElectionInstance.methods.getStart().call();
+      
+      const start = await this.state.ElectionInstance.methods.start(electionId).call();
       this.setState({ isElStarted: start });
-      const end = await this.state.ElectionInstance.methods.getEnd().call();
+      const end = await this.state.ElectionInstance.methods.end(electionId).call();
       this.setState({ isElEnded: end });
 
-      // Loading Candidates details
-      for (let i = 1; i <= this.state.candidateCount; i++) {
-        const candidate = await this.state.ElectionInstance.methods
-          .candidateDetails(i - 1)
-          .call();
-        this.state.candidates.push({
-          id: candidate.candidateId,
-          header: candidate.header,
-          slogan: candidate.slogan,
-        });
-      }
-      this.setState({ candidates: this.state.candidates });
+      // Optimized:      // Optimized: Loading Candidates details in parallel
+      const candidates = await Promise.all(
+        Array.from({ length: candidateCount }, (_, i) => 
+          this.state.ElectionInstance.methods.candidateDetails(electionId, i).call()
+        )
+      );
 
-      // Loading current voter
+      this.setState({ candidates: candidates.map(c => ({
+        id: c.candidateId,
+        header: c.header,
+        slogan: c.slogan,
+      })) });
+
+      // Loading current voter for this session
       const voter = await this.state.ElectionInstance.methods
-        .voterDetails(this.state.account)
+        .voterDetails(electionId, this.state.account)
         .call();
       this.setState({
         currentVoter: {

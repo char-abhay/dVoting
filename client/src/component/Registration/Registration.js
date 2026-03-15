@@ -41,10 +41,7 @@ export default class Registration extends Component {
 
   // refreshing once
   componentDidMount = async () => {
-    if (!window.location.hash) {
-      window.location = window.location + "#loaded";
-      window.location.reload();
-    }
+    // Optimized: Removed redundant window.location.reload() hack
     try {
       // Get network provider and web3 instance.
       const web3 = await getWeb3();
@@ -68,6 +65,10 @@ export default class Registration extends Component {
         account: accounts[0],
       });
 
+      // Get current electionId
+      const electionId = await instance.methods.electionId().call();
+      this.setState({ electionId: electionId });
+
       // Admin account and verification
       const admin = await this.state.ElectionInstance.methods.getAdmin().call();
       if (this.state.account === admin) {
@@ -80,34 +81,34 @@ export default class Registration extends Component {
       const end = await this.state.ElectionInstance.methods.getEnd().call();
       this.setState({ isElEnded: end });
 
-      // Total number of voters
+      // Total number of voters for this session
       const voterCount = await this.state.ElectionInstance.methods
-        .getTotalVoter()
+        .voterCount(electionId)
         .call();
       this.setState({ voterCount: voterCount });
 
-      // Loading all the voters
-      for (let i = 0; i < this.state.voterCount; i++) {
-        const voterAddress = await this.state.ElectionInstance.methods
-          .voters(i)
-          .call();
-        const voter = await this.state.ElectionInstance.methods
-          .voterDetails(voterAddress)
-          .call();
-        this.state.voters.push({
-          address: voter.voterAddress,
-          name: voter.name,
-          phone: voter.phone,
-          hasVoted: voter.hasVoted,
-          isVerified: voter.isVerified,
-          isRegistered: voter.isRegistered,
-        });
-      }
-      this.setState({ voters: this.state.voters });
+      // Optimized: Loading all voters in parallel using Promise.all
+      const voters = await Promise.all(
+        Array.from({ length: voterCount }, (_, i) => 
+          this.state.ElectionInstance.methods.voters(electionId, i).call()
+            .then(address => this.state.ElectionInstance.methods.voterDetails(electionId, address).call())
+        )
+      );
 
-      // Loading current voters
+      const formattedVoters = voters.map(v => ({
+        address: v.voterAddress,
+        name: v.name,
+        phone: v.phone,
+        hasVoted: v.hasVoted,
+        isVerified: v.isVerified,
+        isRegistered: v.isRegistered,
+      }));
+
+      this.setState({ voters: formattedVoters });
+
+      // Loading current voters for this session
       const voter = await this.state.ElectionInstance.methods
-        .voterDetails(this.state.account)
+        .voterDetails(electionId, this.state.account)
         .call();
       this.setState({
         currentVoter: {

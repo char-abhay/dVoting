@@ -8,15 +8,15 @@ export default function Navbar() {
   return (
     <nav>
       <NavLink to="/" className="header">
-        <i className="fab fa-hive"></i> Home
+        <i className="fab fa-hive"></i> VOTER
       </NavLink>
       <ul
         className="navbar-links"
-        style={{ width: "35%", transform: open ? "translateX(0px)" : "" }}
+        style={{ transform: open ? "translateX(0px)" : "" }}
       >
         <li>
           <NavLink to="/Registration" activeClassName="nav-active">
-            <i className="far fa-registered" /> Registration
+            <i className="fas fa-id-card" /> Registration
           </NavLink>
         </li>
         <li>
@@ -26,7 +26,7 @@ export default function Navbar() {
         </li>
         <li>
           <NavLink to="/Results" activeClassName="nav-active">
-            <i className="fas fa-poll-h" /> Results
+            <i className="fas fa-list" /> Results
           </NavLink>
         </li>
       </ul>

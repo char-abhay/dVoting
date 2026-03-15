@@ -26,20 +26,20 @@ export default class Home extends Component {
       account: null,
       web3: null,
       isAdmin: false,
+      isOwner: false, // New state for Owner
       elStarted: false,
       elEnded: false,
       elDetails: {},
       demoMode: false,
-      viewRole: null, // New: track if user clicked 'Admin' or 'Voter'
+      viewRole: null, // 'admin' or 'voter'
+      electionId: 0,
+      newAdminAddress: "", // State for admin transfer
     };
   }
 
   // refreshing once
   componentDidMount = async () => {
-    if (!window.location.hash) {
-      window.location = window.location + "#loaded";
-      window.location.reload();
-    }
+    // Optimized: Removed redundant reload hack
     try {
       // Get network provider and web3 instance.
       const web3 = await getWeb3();
@@ -67,6 +67,16 @@ export default class Home extends Component {
       if (this.state.account === admin) {
         this.setState({ isAdmin: true });
       }
+
+      // Check if current account is Owner
+      const owner = await this.state.ElectionInstance.methods.owner().call();
+      if (this.state.account === owner) {
+        this.setState({ isOwner: true });
+      }
+
+      // Get current electionId
+      const electionId = await this.state.ElectionInstance.methods.electionId().call();
+      this.setState({ electionId: electionId });
 
       // Get election start and end values
       const start = await this.state.ElectionInstance.methods.getStart().call();
@@ -120,12 +130,12 @@ export default class Home extends Component {
     alert("Admin Private Key copied to clipboard! Import this into MetaMask.");
   };
 
-  // switch to ganache network
+  // switch to Sepolia network
   switchNetwork = async () => {
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x539" }],
+        params: [{ chainId: "0xaa36a7" }], // Sepolia ID: 11155111
       });
     } catch (switchError) {
       if (switchError.code === 4902) {
@@ -134,10 +144,11 @@ export default class Home extends Component {
             method: "wallet_addEthereumChain",
             params: [
               {
-                chainId: "0x539",
-                chainName: "Ganache Local",
-                rpcUrls: ["http://127.0.0.1:8545"],
+                chainId: "0xaa36a7",
+                chainName: "Sepolia Test Network",
+                rpcUrls: ["https://sepolia.infura.io/v3/"],
                 nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: ["https://sepolia.etherscan.io"],
               },
             ],
           });
@@ -169,6 +180,59 @@ export default class Home extends Component {
     window.location.reload();
   };
 
+  // Start a completely new election session (Reset)
+  startNewElection = async () => {
+    if (!window.confirm(`⚠️ WARNING: Are you sure you want to start Session #${parseInt(this.state.electionId) + 2}?\n\nThis will clear the current dashboard for all voters. Historical data remains on the blockchain, but the UI will reset.`)) {
+      return;
+    }
+
+    try {
+      await this.state.ElectionInstance.methods
+        .startNewElection()
+        .send({ from: this.state.account, gas: 1000000 });
+      window.location.reload();
+    } catch (error) {
+      console.error("Error starting new election:", error);
+      alert("Failed to start a new election. Please try again.");
+    }
+  };
+
+  transferAdmin = async () => {
+    const newAddress = this.state.newAdminAddress.trim();
+    if (!this.state.web3.utils.isAddress(newAddress)) {
+      alert("Invalid Ethereum address. Please check and try again.");
+      return;
+    }
+
+    if (!window.confirm(`⚠️ DANGER: Transfer Admin Rights?\n\nYou are about to transfer FULL control of this voting application to:\n${newAddress}\n\nYou will lose your Admin privileges immediately. This action CANNOT be undone.`)) {
+      return;
+    }
+
+    try {
+      await this.state.ElectionInstance.methods
+        .setAdmin(newAddress)
+        .send({ from: this.state.account, gas: 1000000 });
+      alert("Admin rights successfully transferred.");
+      window.location.reload();
+    } catch (error) {
+      console.error("Error transferring admin:", error);
+      alert("Failed to transfer admin rights. Please try again.");
+    }
+  };
+
+  reclaimAdmin = async () => {
+    try {
+      await this.state.ElectionInstance.methods
+        .setAdmin(this.state.account)
+        .send({ from: this.state.account, gas: 1000000 });
+      alert("Admin rights successfully reclaimed! You are now the Admin again.");
+      window.location.reload();
+    } catch (error) {
+      console.error("Error reclaiming admin:", error);
+      alert("Failed to reclaim admin rights.");
+    }
+  };
+
   // set view role
   setViewRole = (role) => {
     this.setState({ viewRole: role });
@@ -178,7 +242,7 @@ export default class Home extends Component {
     if (!this.state.web3) {
       return (
         <>
-          <Navbar />
+          {/* Navbar removed from loading screen for cleaner look */}
           <div className="container-main" style={{ textAlign: "center", marginTop: "30px" }}>
             <div className="loader-container">
               <div className="spinner"></div>
@@ -186,11 +250,11 @@ export default class Home extends Component {
             </div>
 
             <div className="guide-card">
-              <h4>🛠️ Quick Connection Guide</h4>
+              <h4>🌍 Public Connection Guide</h4>
               <ul style={{ textAlign: "left", display: "inline-block" }}>
-                <li>1. Open <strong>Ganache</strong> (make sure it says "Listening on 127.0.0.1:8545")</li>
-                <li>2. Open <strong>MetaMask</strong> and unlock it.</li>
-                <li>3. Ensure MetaMask is on <strong>Ganache Local</strong> (ID 1337).</li>
+                <li>1. Open your <strong>MetaMask</strong> extension.</li>
+                <li>2. Switch to the <strong>Sepolia Test Network</strong>.</li>
+                <li>3. Ensure you have some <strong>Sepolia ETH</strong> to vote.</li>
               </ul>
             </div>
 
@@ -207,34 +271,34 @@ export default class Home extends Component {
     if (this.state.web3 === "failed") {
       return (
         <>
-          <Navbar />
+          {/* Navbar removed from failure screen */}
           <div className="container-main" style={{ textAlign: "center", marginTop: "30px" }}>
             <h3 style={{ color: "tomato" }}>⚠️ Connection Failed</h3>
             <p>MetaMask is connected, but we can't find your Smart Contract.</p>
 
             <div className="troubleshoot-container">
               <div className="troubleshoot-step">
-                <strong>Step 1: Check Network</strong>
-                <p>Ensure MetaMask is on "Ganache Local" (Chain ID 1337).</p>
+                <strong>Step 1: Correct Network</strong>
+                <p>Ensure MetaMask is on "Sepolia Test Network".</p>
                 <button onClick={this.switchNetwork} className="btn-action">
-                  🔄 Auto-Switch Network
+                  🔄 Switch to Sepolia
                 </button>
               </div>
 
               <div className="troubleshoot-step">
-                <strong>Step 2: Fix "Out of Sync" Error</strong>
-                <p>If Ganache was restarted, MetaMask gets stuck. Fix it here:</p>
+                <strong>Step 2: No ETH?</strong>
+                <p>Voting requires a tiny bit of test ETH for gas.</p>
                 <div className="meta-instructions">
-                  MetaMask {">"} Settings {">"} Advanced {">"} <strong>Clear activity tab data</strong>
+                  Visit a <strong>Sepolia Faucet</strong> to get free test money.
                 </div>
               </div>
 
               <div className="troubleshoot-step">
                 <strong>Step 3: Admin Access</strong>
-                <p>Need to log in as Admin? Import the first account from Ganache.</p>
-                <button onClick={this.copyAdminKey} className="btn-action-alt">
-                  📋 Copy Admin Private Key
-                </button>
+                <p>Only the owner of the contract can set up the election.</p>
+                <div className="meta-instructions">
+                  Ensure your Admin account is selected in MetaMask.
+                </div>
               </div>
             </div>
 
@@ -253,7 +317,6 @@ export default class Home extends Component {
     if (!this.state.viewRole && !this.state.demoMode) {
       return (
         <>
-          <Navbar />
           <div className="landing-container">
             <h1 className="landing-title">Welcome to dVoting</h1>
             <p className="landing-subtitle">Choose your role to get started</p>
@@ -308,12 +371,14 @@ export default class Home extends Component {
               </>
             )}
           </div>
+
+
           {!this.state.elStarted && !this.state.elEnded ? (
             <div className="container-item info">
               <center>
                 <h3>The election has not been initialized.</h3>
                 {showAdminUI ? (
-                  <p>Set up the election below.</p>
+                  <p>Set up the election details below to start.</p>
                 ) : (
                   <>
                     <p>The Admin has not yet started the election. Please wait..</p>
@@ -328,7 +393,7 @@ export default class Home extends Component {
                         cursor: "pointer",
                       }}
                     >
-                      Switch to Ganache Network
+                      Switch to Sepolia Network
                     </button>
                   </>
                 )}
@@ -356,7 +421,23 @@ export default class Home extends Component {
             <center>
               <h3>Unauthorized!</h3>
               <p>Your current wallet address is not the Admin address.</p>
-              <p>Please switch to Account #0 in MetaMask or choose <strong>Voter</strong> role.</p>
+              {this.state.isOwner ? (
+                <div style={{ marginTop: "20px", padding: "15px", border: "1px solid #ffcccc", borderRadius: "8px", background: "#fff5f5", maxWidth: "400px" }}>
+                  <h4 style={{ color: "tomato", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                    👑 Owner Override
+                  </h4>
+                  <p style={{ fontSize: "14px", marginBottom: "15px" }}>You are the original Owner of this contract. You can instantly reclaim the Admin role from the current Admin.</p>
+                  <button
+                    onClick={this.reclaimAdmin}
+                    className="btn-main"
+                    style={{ background: "#c0392b", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", width: "100%" }}
+                  >
+                    Reclaim Admin Rights
+                  </button>
+                </div>
+              ) : (
+                <p>Please switch to Account #0 in MetaMask or choose <strong>Voter</strong> role.</p>
+              )}
             </center>
           </div>
         ) : null}
@@ -489,6 +570,49 @@ export default class Home extends Component {
               elStarted={this.state.elStarted}
               elEnded={this.state.elEnded}
             />
+            {/* Danger Zone: Restart Election or Transfer Admin */}
+            <div className="container-main" style={{ borderTop: "2px solid tomato", marginTop: "40px", paddingTop: "20px" }}>
+              <h4 style={{ color: "tomato", marginBottom: "20px" }}>🛑 Danger Zone</h4>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", justifyContent: "center" }}>
+                {/* Restart Election Block */}
+                {this.state.elEnded && (
+                  <div style={{ flex: "1", minWidth: "300px", padding: "15px", border: "1px solid #ffcccc", borderRadius: "8px", background: "#fff5f5" }}>
+                    <p style={{ margin: "0 0 10px 0", fontSize: "14px" }}>Start a new election session (Session #{parseInt(this.state.electionId) + 2}). This will clear the current dashboard for all users.</p>
+                    <button
+                      type="button"
+                      onClick={this.startNewElection}
+                      className="btn-main"
+                      style={{ background: "tomato", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", width: "100%" }}
+                    >
+                      🔄 Restart & Start Session #{parseInt(this.state.electionId) + 2}
+                    </button>
+                  </div>
+                )}
+
+                {/* Transfer Admin Block */}
+                <div style={{ flex: "1", minWidth: "300px", padding: "15px", border: "1px solid #ffcccc", borderRadius: "8px", background: "#fff5f5" }}>
+                  <p style={{ margin: "0 0 10px 0", fontSize: "14px" }}>Transfer all Admin rights to another wallet. You will lose access immediately.</p>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input
+                      type="text"
+                      placeholder="New Admin Address (0x...)"
+                      value={this.state.newAdminAddress}
+                      onChange={(e) => this.setState({ newAdminAddress: e.target.value })}
+                      style={{ flex: "1", padding: "10px", borderRadius: "5px", border: "1px solid #ccc" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={this.transferAdmin}
+                      className="btn-main"
+                      style={{ background: "#c0392b", color: "white", padding: "10px 20px", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+                    >
+                      Transfer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </form>
         </div>
       );

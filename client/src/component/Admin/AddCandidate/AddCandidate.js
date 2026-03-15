@@ -26,11 +26,7 @@ export default class AddCandidate extends Component {
   }
 
   componentDidMount = async () => {
-    // refreshing page only once
-    if (!window.location.hash) {
-      window.location = window.location + "#loaded";
-      window.location.reload();
-    }
+    // Optimized: Removed redundant window.location.reload() hack
 
     try {
       // Get network provider and web3 instance.
@@ -54,9 +50,13 @@ export default class AddCandidate extends Component {
         account: accounts[0],
       });
 
-      // Total number of candidates
+      // Get current electionId
+      const electionId = await instance.methods.electionId().call();
+      this.setState({ electionId: electionId });
+
+      // Total number of candidates for this session
       const candidateCount = await this.state.ElectionInstance.methods
-        .getTotalCandidate()
+        .candidateCount(electionId)
         .call();
       this.setState({ candidateCount: candidateCount });
 
@@ -65,19 +65,24 @@ export default class AddCandidate extends Component {
         this.setState({ isAdmin: true });
       }
 
-      // Loading Candidates details
-      for (let i = 0; i < this.state.candidateCount; i++) {
-        const candidate = await this.state.ElectionInstance.methods
-          .candidateDetails(i)
-          .call();
-        this.state.candidates.push({
-          id: candidate.candidateId,
-          header: candidate.header,
-          slogan: candidate.slogan,
-        });
-      }
+      // Optimized: Loading candidates details in parallel
+      const candidates = await Promise.all(
+        Array.from({ length: candidateCount }, (_, i) => 
+          this.state.ElectionInstance.methods.candidateDetails(electionId, i).call()
+        )
+      );
 
-      this.setState({ candidates: this.state.candidates });
+      const formattedCandidates = candidates.map(c => ({
+        id: c.candidateId,
+        header: c.header,
+        slogan: c.slogan,
+      }));
+
+      this.setState({ candidates: candidates.map(c => ({
+        id: c.candidateId,
+        header: c.header,
+        slogan: c.slogan,
+      })) });
     } catch (error) {
       // Catch any errors for any of the above operations.
       console.error(error);
