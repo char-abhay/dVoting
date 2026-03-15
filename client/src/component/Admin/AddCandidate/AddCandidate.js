@@ -78,11 +78,7 @@ export default class AddCandidate extends Component {
         slogan: c.slogan,
       }));
 
-      this.setState({ candidates: candidates.map(c => ({
-        id: c.candidateId,
-        header: c.header,
-        slogan: c.slogan,
-      })) });
+      this.setState({ candidates: formattedCandidates });
     } catch (error) {
       // Catch any errors for any of the above operations.
       console.error(error);
